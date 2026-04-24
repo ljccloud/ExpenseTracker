@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Expenses">
+<meta name="theme-color" content="#ffffff">
+<title>Expense Tracker</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f5f3;
+    --bg3: #efefec;
+    --text: #1a1a1a;
+    --text2: #6b6b6b;
+    --text3: #999;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.22);
+    --radius: 10px;
+    --radius-lg: 14px;
+    --success-bg: #EAF3DE;
+    --success-text: #27500A;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1e;
+      --bg2: #2c2c2e;
+      --bg3: #3a3a3c;
+      --text: #f2f2f7;
+      --text2: #aeaeb2;
+      --text3: #6d6d72;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.2);
+      --success-bg: #1a3010;
+      --success-text: #97C459;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg3); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 16px; color: var(--text); }
+  input, select, textarea, button { font-family: inherit; font-size: 16px; -webkit-appearance: none; appearance: none; color: var(--text); }
+  input[type=date] { -webkit-appearance: none; min-height: 44px; }
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+
+  #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; max-width: 480px; margin: 0 auto; background: var(--bg3); }
+  .content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-top: calc(var(--safe-top) + 8px); }
+  .panel { display: none; padding: 0 16px 16px; }
+  .panel.active { display: block; }
+
+  .nav { display: grid; grid-template-columns: repeat(4,1fr); background: var(--bg); border-top: 0.5px solid var(--border); padding-bottom: var(--safe-bottom); flex-shrink: 0; }
+  .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px calc(6px); font-size: 10px; color: var(--text2); background: none; border: none; cursor: pointer; min-height: 52px; transition: color 0.15s; }
+  .nav-btn.active { color: var(--text); font-weight: 600; }
+  .nav-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+  .page-title { font-size: 28px; font-weight: 700; color: var(--text); margin: 12px 0 16px; letter-spacing: -0.5px; }
+  .section-label { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; margin-top: 20px; }
+
+  .card { background: var(--bg); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; border: 0.5px solid var(--border); }
+  .form-group { margin-bottom: 12px; }
+  .form-group label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px; font-weight: 500; }
+  .form-group input, .form-group select { width: 100%; min-height: 44px; padding: 10px 12px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text); }
+  .form-group select { min-height: 44px; padding: 10px 32px 10px 12px; background-color: var(--bg2); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .btn { min-height: 50px; width: 100%; border-radius: var(--radius-lg); font-size: 16px; font-weight: 600; cursor: pointer; border: none; background: var(--text); color: var(--bg); display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 20px; transition: opacity 0.15s, transform 0.1s; }
+  .btn:active { transform: scale(0.97); opacity: 0.85; }
+  .btn-outline { background: transparent; color: var(--text); border: 0.5px solid var(--border2); }
+  .btn-sm { min-height: 40px; font-size: 14px; font-weight: 500; border-radius: var(--radius); }
+  .btn-row { display: flex; gap: 10px; }
+  .btn-row .btn { flex: 1; }
+
+  .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .metric { background: var(--bg); border-radius: var(--radius-lg); padding: 14px; border: 0.5px solid var(--border); }
+  .metric-label { font-size: 12px; color: var(--text2); margin-bottom: 4px; font-weight: 500; }
+  .metric-value { font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+
+  .exp-row { display: flex; align-items: flex-start; gap: 10px; padding: 12px 0; border-bottom: 0.5px solid var(--border); }
+  .exp-row:last-child { border-bottom: none; }
+  .exp-dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+  .exp-info { flex: 1; min-width: 0; }
+  .exp-venue { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .exp-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .exp-amount { font-size: 15px; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+  .del-btn { width: 30px; height: 30px; border-radius: 50%; border: none; background: var(--bg2); cursor: pointer; color: var(--text2); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .del-btn:active { background: #fee; color: #c00; }
+
+  .upload-zone { border: 1.5px dashed var(--border2); border-radius: var(--radius-lg); padding: 32px 20px; text-align: center; cursor: pointer; background: var(--bg); margin-bottom: 12px; }
+  .upload-zone:active { background: var(--bg2); }
+  .upload-icon { width: 48px; height: 48px; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; background: var(--bg2); border-radius: 50%; }
+  .upload-icon svg { width: 22px; height: 22px; stroke: var(--text2); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  #imgPreview { width: 100%; border-radius: var(--radius); margin-bottom: 12px; display: none; max-height: 220px; object-fit: cover; }
+
+  .scanning { display: none; text-align: center; padding: 24px 0; }
+  .spinner { width: 28px; height: 28px; border: 2.5px solid var(--border2); border-top-color: var(--text); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 10px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .progress { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 8px; }
+  .prog-bar { height: 100%; width: 0%; background: var(--text); border-radius: 2px; transition: width 0.3s; }
+
+  .ai-box { background: var(--bg2); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
+  .ai-field { display: flex; justify-content: space-between; align-items: flex-start; padding: 7px 0; border-bottom: 0.5px solid var(--border); }
+  .ai-field:last-child { border-bottom: none; }
+  .ai-field-label { font-size: 13px; color: var(--text2); }
+  .ai-field-val { font-size: 14px; font-weight: 500; text-align: right; max-width: 65%; }
+
+  .mil-calc { background: var(--bg2); border-radius: var(--radius); padding: 14px; margin-bottom: 14px; display: none; }
+  .mil-val { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+  .mil-sub { font-size: 13px; color: var(--text2); margin-top: 2px; }
+
+  .period-pills { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 2px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .period-pills::-webkit-scrollbar { display: none; }
+  .pill { padding: 8px 18px; border-radius: 999px; border: 0.5px solid var(--border2); background: transparent; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--text2); white-space: nowrap; min-height: 38px; }
+  .pill.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+  .cat-row { margin-bottom: 13px; }
+  .cat-row-head { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; }
+  .cat-bar-bg { height: 5px; background: var(--bg3); border-radius: 3px; }
+  .cat-bar-fill { height: 5px; border-radius: 3px; transition: width 0.4s; }
+
+  .export-box { background: var(--bg2); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; font-size: 12px; line-height: 1.8; color: var(--text2); white-space: pre-wrap; font-family: 'Menlo', 'Courier New', monospace; display: none; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .ai-narrative { background: var(--bg2); border-radius: var(--radius); padding: 14px; font-size: 14px; line-height: 1.7; display: none; margin-bottom: 12px; }
+
+  .empty { text-align: center; padding: 28px 16px; color: var(--text2); font-size: 14px; }
+
+  .cat-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+
+  .api-key-notice { background: #FFF8E1; border: 0.5px solid #F9A825; border-radius: var(--radius); padding: 12px 14px; margin-bottom: 12px; font-size: 13px; color: #5D4037; display: none; }
+  @media (prefers-color-scheme: dark) {
+    .api-key-notice { background: #3a2e00; border-color: #806000; color: #ffd54f; }
+  }
+
+  input[type=text]:focus, input[type=number]:focus, input[type=date]:focus, select:focus, textarea:focus {
+    outline: none; border-color: var(--text); box-shadow: 0 0 0 3px rgba(0,0,0,0.08);
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="content">
+
+    <!-- ADD -->
+    <div id="panel-add" class="panel active">
+      <p class="page-title">Add expense</p>
+      <div class="card">
+        <div class="row2">
+          <div class="form-group"><label>Date</label><input type="date" id="exp-date"></div>
+          <div class="form-group"><label>Amount (£)</label><input type="number" id="exp-amount" placeholder="0.00" step="0.01" min="0" inputmode="decimal"></div>
+        </div>
+        <div class="form-group"><label>Venue / merchant</label><input type="text" id="exp-venue" placeholder="e.g. Costa Coffee" autocomplete="off" autocorrect="off"></div>
+        <div class="form-group"><label>Category</label>
+          <select id="exp-cat">
+            <option>Food &amp; drink</option><option>Travel</option><option>Accommodation</option>
+            <option>Office &amp; supplies</option><option>Client entertainment</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Notes (optional)</label><input type="text" id="exp-notes" placeholder="e.g. team lunch"></div>
+        <button class="btn" onclick="addExpense()">
+          <svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add expense
+        </button>
+      </div>
+      <p class="section-label">Recent</p>
+      <div class="card"><div id="exp-list"><div class="empty">No expenses yet</div></div></div>
+    </div>
+
+    <!-- RECEIPT -->
+    <div id="panel-receipt" class="panel">
+      <p class="page-title">Scan receipt</p>
+      <div id="api-notice" class="api-key-notice">
+        To use AI scanning, paste your Anthropic API key below. Get one free at console.anthropic.com.
+        <br><br>
+        <input type="password" id="api-key-input" placeholder="sk-ant-..." style="width:100%;min-height:40px;padding:8px 10px;border-radius:8px;border:0.5px solid #ccc;margin-top:4px;font-size:14px">
+        <button onclick="saveKey()" style="margin-top:8px;min-height:36px;width:100%;border-radius:8px;border:none;background:#5D4037;color:#fff;font-size:14px;font-weight:600;cursor:pointer">Save key</button>
+      </div>
+      <div class="card">
+        <div class="upload-zone" onclick="document.getElementById('receipt-file').click()">
+          <div class="upload-icon">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <p style="font-size:16px;font-weight:600;margin-bottom:4px">Upload receipt or ticket</p>
+          <p style="font-size:13px;color:var(--text2)">Tap to take photo or choose file</p>
+        </div>
+        <input type="file" id="receipt-file" accept="image/*,.pdf" capture="environment" style="display:none" onchange="handleReceipt(event)">
+        <img id="imgPreview">
+        <div class="scanning" id="scanning">
+          <div class="spinner"></div>
+          <p style="font-size:14px;color:var(--text2)">Analysing with AI...</p>
+          <div class="progress"><div class="prog-bar" id="prog-bar"></div></div>
+        </div>
+        <div id="scan-result" style="display:none">
+          <div class="ai-box">
+            <p style="font-size:14px;font-weight:600;margin-bottom:10px">Extracted details</p>
+            <div class="ai-field"><span class="ai-field-label">Date</span><span class="ai-field-val" id="r-date">—</span></div>
+            <div class="ai-field"><span class="ai-field-label">Amount</span><span class="ai-field-val" id="r-amount">—</span></div>
+            <div class="ai-field"><span class="ai-field-label">Venue</span><span class="ai-field-val" id="r-venue">—</span></div>
+            <div class="ai-field"><span class="ai-field-label">Category</span><span class="ai-field-val" id="r-cat">—</span></div>
+            <div class="ai-field"><span class="ai-field-label">Notes</span><span class="ai-field-val" id="r-notes">—</span></div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-sm" onclick="addFromScan()">Add to expenses</button>
+            <button class="btn btn-outline btn-sm" onclick="editScan()">Edit first</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MILEAGE -->
+    <div id="panel-mileage" class="panel">
+      <p class="page-title">Mileage</p>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <p style="font-size:14px;color:var(--text2);font-weight:500">HMRC approved rate</p>
+          <span class="badge" style="background:var(--success-bg);color:var(--success-text)">45p / mile</span>
+        </div>
+        <div class="row2">
+          <div class="form-group"><label>Date</label><input type="date" id="mil-date"></div>
+          <div class="form-group"><label>Miles driven</label><input type="number" id="mil-miles" placeholder="0" step="0.1" min="0" inputmode="decimal" oninput="calcMil()"></div>
+        </div>
+        <div class="mil-calc" id="mil-calc">
+          <div style="font-size:12px;color:var(--text2);margin-bottom:2px;font-weight:500">Claim value</div>
+          <div class="mil-val" id="mil-value">£0.00</div>
+          <div class="mil-sub">45p × <span id="mil-miles-lbl">0</span> miles</div>
+        </div>
+        <div class="form-group"><label>Journey description</label><input type="text" id="mil-desc" placeholder="e.g. London to Birmingham — client meeting"></div>
+        <div class="row2">
+          <div class="form-group"><label>From</label><input type="text" id="mil-from" placeholder="Start"></div>
+          <div class="form-group"><label>To</label><input type="text" id="mil-to" placeholder="End"></div>
+        </div>
+        <button class="btn" onclick="addMileage()">
+          <svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add claim
+        </button>
+      </div>
+      <p class="section-label">Mileage log</p>
+      <div class="card"><div id="mil-list"><div class="empty">No mileage claims yet</div></div></div>
+    </div>
+
+    <!-- SUMMARY -->
+    <div id="panel-summary" class="panel">
+      <p class="page-title">Summary</p>
+      <div class="period-pills">
+        <button class="pill active" onclick="setPeriod('week',this)">This week</button>
+        <button class="pill" onclick="setPeriod('month',this)">This month</button>
+        <button class="pill" onclick="setPeriod('all',this)">All time</button>
+      </div>
+      <div class="metric-grid">
+        <div class="metric"><div class="metric-label">Expenses</div><div class="metric-value" id="s-exp">£0.00</div></div>
+        <div class="metric"><div class="metric-label">Mileage</div><div class="metric-value" id="s-mil">£0.00</div></div>
+        <div class="metric"><div class="metric-label">Items</div><div class="metric-value" id="s-cnt">0</div></div>
+        <div class="metric"><div class="metric-label">Grand total</div><div class="metric-value" id="s-tot">£0.00</div></div>
+      </div>
+      <div class="card">
+        <p class="section-label" style="margin-top:0">By category</p>
+        <div id="cat-chart"><div class="empty" style="padding:12px 0">No data for this period</div></div>
+      </div>
+      <div class="card">
+        <p class="section-label" style="margin-top:0">All items</p>
+        <div id="sum-list"><div class="empty">No items</div></div>
+      </div>
+      <div class="btn-row" style="margin-bottom:12px">
+        <button class="btn btn-outline btn-sm" onclick="doExport()">Export text</button>
+        <button class="btn btn-sm" onclick="genNarrative()">AI summary ↗</button>
+      </div>
+      <div class="export-box" id="export-box"></div>
+      <div class="ai-narrative" id="ai-narrative"></div>
+      <div id="copy-row" style="display:none;margin-bottom:20px">
+        <button class="btn btn-outline btn-sm" onclick="doCopy()">Copy to clipboard</button>
+      </div>
+    </div>
+
+  </div><!-- end content -->
+
+  <nav class="nav">
+    <button class="nav-btn active" id="nav-add" onclick="showTab('add')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Add
+    </button>
+    <button class="nav-btn" id="nav-receipt" onclick="showTab('receipt')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Receipt
+    </button>
+    <button class="nav-btn" id="nav-mileage" onclick="showTab('mileage')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+      Mileage
+    </button>
+    <button class="nav-btn" id="nav-summary" onclick="showTab('summary');renderSummary()">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Summary
+    </button>
+  </nav>
+</div>
+
+<script>
+const HMRC = 0.45;
+const CATS = {
+  'Food & drink':'#1D9E75','Travel':'#378ADD','Accommodation':'#7F77DD',
+  'Office & supplies':'#BA7517','Client entertainment':'#D4537E','Other':'#888780','Mileage':'#3B6D11'
+};
+let expenses = [], mileage = [], scanData = {}, period = 'week';
+
+function load() {
+  try { expenses = JSON.parse(localStorage.getItem('et_exp') || '[]'); mileage = JSON.parse(localStorage.getItem('et_mil') || '[]'); }
+  catch(e) { expenses = []; mileage = []; }
+}
+function save() {
+  try { localStorage.setItem('et_exp', JSON.stringify(expenses)); localStorage.setItem('et_mil', JSON.stringify(mileage)); }
+  catch(e) {}
+}
+function getKey() { return localStorage.getItem('et_apikey') || ''; }
+function saveKey() {
+  const k = document.getElementById('api-key-input').value.trim();
+  if (k) { localStorage.setItem('et_apikey', k); document.getElementById('api-notice').style.display = 'none'; alert('API key saved!'); }
+}
+function fmt(n) { return '£' + parseFloat(n || 0).toFixed(2); }
+function today() { return new Date().toISOString().split('T')[0]; }
+
+load();
+document.getElementById('exp-date').value = today();
+document.getElementById('mil-date').value = today();
+
+if (!getKey()) document.getElementById('api-notice').style.display = 'block';
+
+function showTab(t) {
+  ['add','receipt','mileage','summary'].forEach(n => {
+    document.getElementById('panel-' + n).classList.toggle('active', n === t);
+    document.getElementById('nav-' + n).classList.toggle('active', n === t);
+  });
+  document.querySelector('.content').scrollTop = 0;
+}
+
+function addExpense(d) {
+  const data = d || {
+    date: document.getElementById('exp-date').value,
+    amount: parseFloat(document.getElementById('exp-amount').value) || 0,
+    venue: document.getElementById('exp-venue').value.trim(),
+    category: document.getElementById('exp-cat').value,
+    notes: document.getElementById('exp-notes').value.trim()
+  };
+  if (!data.date || !data.amount || !data.venue) { alert('Please fill in date, amount, and venue.'); return; }
+  expenses.push({ ...data, id: Date.now() });
+  save(); renderExpenses();
+  if (!d) {
+    document.getElementById('exp-amount').value = '';
+    document.getElementById('exp-venue').value = '';
+    document.getElementById('exp-notes').value = '';
+  }
+}
+
+function delExp(id) { expenses = expenses.filter(e => e.id !== id); save(); renderExpenses(); }
+
+function renderExpenses() {
+  const el = document.getElementById('exp-list');
+  const recent = expenses.slice().reverse().slice(0, 30);
+  if (!recent.length) { el.innerHTML = '<div class="empty">No expenses yet</div>'; return; }
+  el.innerHTML = recent.map(e => `
+    <div class="exp-row">
+      <span class="exp-dot" style="background:${CATS[e.category]||'#888'}"></span>
+      <div class="exp-info">
+        <div class="exp-venue">${e.venue}</div>
+        <div class="exp-meta">${e.date}${e.notes ? ' · ' + e.notes : ''} · ${e.category}</div>
+      </div>
+      <span class="exp-amount">${fmt(e.amount)}</span>
+      <button class="del-btn" onclick="delExp(${e.id})">✕</button>
+    </div>`).join('');
+}
+
+function calcMil() {
+  const m = parseFloat(document.getElementById('mil-miles').value) || 0;
+  document.getElementById('mil-calc').style.display = m > 0 ? 'block' : 'none';
+  document.getElementById('mil-value').textContent = fmt(m * HMRC);
+  document.getElementById('mil-miles-lbl').textContent = m.toFixed(1);
+}
+
+function addMileage() {
+  const miles = parseFloat(document.getElementById('mil-miles').value) || 0;
+  if (!miles) { alert('Please enter miles driven.'); return; }
+  mileage.push({
+    id: Date.now(),
+    date: document.getElementById('mil-date').value,
+    miles: miles,
+    desc: document.getElementById('mil-desc').value.trim() || 'Journey',
+    from: document.getElementById('mil-from').value.trim(),
+    to: document.getElementById('mil-to').value.trim(),
+    value: parseFloat((miles * HMRC).toFixed(2))
+  });
+  save(); renderMileage();
+  ['mil-miles','mil-desc','mil-from','mil-to'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('mil-calc').style.display = 'none';
+}
+
+function delMil(id) { mileage = mileage.filter(m => m.id !== id); save(); renderMileage(); }
+
+function renderMileage() {
+  const el = document.getElementById('mil-list');
+  if (!mileage.length) { el.innerHTML = '<div class="empty">No mileage claims yet</div>'; return; }
+  el.innerHTML = mileage.slice().reverse().map(m => `
+    <div class="exp-row">
+      <span class="exp-dot" style="background:#3B6D11"></span>
+      <div class="exp-info">
+        <div class="exp-venue">${m.desc}</div>
+        <div class="exp-meta">${m.date} · ${m.miles.toFixed(1)} miles${m.from && m.to ? ' · ' + m.from + ' → ' + m.to : ''}</div>
+      </div>
+      <span class="exp-amount">${fmt(m.value)}</span>
+      <button class="del-btn" onclick="delMil(${m.id})">✕</button>
+    </div>`).join('');
+}
+
+function filterPeriod(arr) {
+  const now = new Date();
+  return arr.filter(e => {
+    const d = new Date(e.date + 'T00:00:00');
+    if (period === 'week') { const s = new Date(now); s.setDate(now.getDate() - now.getDay()); s.setHours(0,0,0,0); return d >= s && d <= now; }
+    if (period === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    return true;
+  });
+}
+
+function setPeriod(p, btn) {
+  period = p;
+  document.querySelectorAll('.pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSummary();
+}
+
+function renderSummary() {
+  const fe = filterPeriod(expenses), fm = filterPeriod(mileage);
+  const te = fe.reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+  const tm = fm.reduce((s, m) => s + parseFloat(m.value || 0), 0);
+  document.getElementById('s-exp').textContent = fmt(te);
+  document.getElementById('s-mil').textContent = fmt(tm);
+  document.getElementById('s-cnt').textContent = fe.length + fm.length;
+  document.getElementById('s-tot').textContent = fmt(te + tm);
+  const cats = {};
+  fe.forEach(e => { cats[e.category] = (cats[e.category] || 0) + parseFloat(e.amount || 0); });
+  if (tm > 0) cats['Mileage'] = (cats['Mileage'] || 0) + tm;
+  const cc = document.getElementById('cat-chart');
+  if (!Object.keys(cats).length) { cc.innerHTML = '<div class="empty" style="padding:12px 0">No data for this period</div>'; }
+  else {
+    const sorted = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+    const max = sorted[0][1];
+    cc.innerHTML = sorted.map(([c, v]) => `
+      <div class="cat-row">
+        <div class="cat-row-head">
+          <span><span class="cat-dot" style="background:${CATS[c]||'#888'}"></span>${c}</span>
+          <span style="font-weight:600">${fmt(v)}</span>
+        </div>
+        <div class="cat-bar-bg"><div class="cat-bar-fill" style="width:${Math.round((v/max)*100)}%;background:${CATS[c]||'#888'}"></div></div>
+      </div>`).join('');
+  }
+  const all = [
+    ...fe.map(e => ({ date: e.date, label: e.venue, sub: e.category, val: e.amount })),
+    ...fm.map(m => ({ date: m.date, label: m.desc, sub: m.miles.toFixed(1) + ' miles', val: m.value }))
+  ].sort((a, b) => b.date.localeCompare(a.date));
+  const sl = document.getElementById('sum-list');
+  sl.innerHTML = all.length ? all.map(i => `
+    <div class="exp-row">
+      <div class="exp-info">
+        <div class="exp-venue">${i.label}</div>
+        <div class="exp-meta">${i.date} · ${i.sub}</div>
+      </div>
+      <span class="exp-amount">${fmt(i.val)}</span>
+    </div>`).join('') : '<div class="empty">No items</div>';
+}
+
+function doExport() {
+  const fe = filterPeriod(expenses), fm = filterPeriod(mileage);
+  const te = fe.reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+  const tm = fm.reduce((s, m) => s + parseFloat(m.value || 0), 0);
+  const label = period === 'week' ? 'This week' : period === 'month' ? 'This month' : 'All time';
+  let t = `EXPENSE SUMMARY — ${label.toUpperCase()}\nDate: ${new Date().toLocaleDateString('en-GB')}\n\n`;
+  if (fe.length) {
+    t += `EXPENSES\n`;
+    fe.sort((a,b) => a.date.localeCompare(b.date)).forEach(e => { t += `${e.date}  ${e.venue}  ${e.category}  ${fmt(e.amount)}\n`; });
+    t += `Subtotal: ${fmt(te)}\n\n`;
+  }
+  if (fm.length) {
+    t += `MILEAGE\n`;
+    fm.sort((a,b) => a.date.localeCompare(b.date)).forEach(m => { t += `${m.date}  ${m.desc}  ${m.miles.toFixed(1)} mi  ${fmt(m.value)}\n`; });
+    t += `Subtotal: ${fmt(tm)}\n\n`;
+  }
+  t += `GRAND TOTAL: ${fmt(te + tm)}`;
+  const box = document.getElementById('export-box');
+  box.textContent = t; box.style.display = 'block';
+  document.getElementById('copy-row').style.display = 'block';
+  document.getElementById('ai-narrative').style.display = 'none';
+}
+
+function doCopy() {
+  const txt = document.getElementById('export-box').textContent || document.getElementById('ai-narrative').textContent;
+  if (navigator.share) {
+    navigator.share({ text: txt }).catch(() => {});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(txt).then(() => alert('Copied!')).catch(() => {});
+  }
+}
+
+async function apiCall(messages, maxTokens) {
+  const key = getKey();
+  if (!key) { document.getElementById('api-notice').style.display = 'block'; showTab('receipt'); throw new Error('No API key'); }
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: maxTokens || 1000, messages })
+  });
+  return res.json();
+}
+
+async function genNarrative() {
+  const box = document.getElementById('export-box');
+  if (!box.textContent.trim()) doExport();
+  const txt = box.textContent;
+  const el = document.getElementById('ai-narrative');
+  el.style.display = 'block'; el.textContent = 'Generating…';
+  try {
+    const data = await apiCall([{ role: 'user', content: 'Write a concise 3-4 sentence professional expense summary suitable to email to an accountant or manager. Plain text only, no markdown. Data:\n\n' + txt }]);
+    el.textContent = data.content?.[0]?.text || 'Could not generate summary.';
+    document.getElementById('copy-row').style.display = 'block';
+  } catch(e) { el.textContent = 'Error — please check your API key.'; }
+}
+
+async function handleReceipt(ev) {
+  const file = ev.target.files[0]; if (!file) return;
+  const prev = document.getElementById('imgPreview');
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    if (file.type.startsWith('image/')) { prev.src = e.target.result; prev.style.display = 'block'; }
+    document.getElementById('scanning').style.display = 'block';
+    document.getElementById('scan-result').style.display = 'none';
+    const bar = document.getElementById('prog-bar'); let p = 0;
+    const iv = setInterval(() => { p = Math.min(p + 10, 85); bar.style.width = p + '%'; }, 300);
+    try {
+      const b64 = e.target.result.split(',')[1];
+      const mt = file.type || 'image/jpeg';
+      const data = await apiCall([{ role: 'user', content: [
+        { type: 'image', source: { type: 'base64', media_type: mt, data: b64 } },
+        { type: 'text', text: `Extract expense info from this receipt. Return ONLY valid JSON: { "date": "YYYY-MM-DD (today=${today()})", "amount": number, "venue": string, "category": "Food & drink|Travel|Accommodation|Office & supplies|Client entertainment|Other", "notes": string|null }. No markdown, no extra text.` }
+      ]}]);
+      clearInterval(iv); bar.style.width = '100%';
+      const raw = data.content?.[0]?.text || '{}';
+      const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+      scanData = parsed;
+      document.getElementById('r-date').textContent = parsed.date || 'Not found';
+      document.getElementById('r-amount').textContent = parsed.amount ? fmt(parsed.amount) : 'Not found';
+      document.getElementById('r-venue').textContent = parsed.venue || 'Not found';
+      document.getElementById('r-cat').textContent = parsed.category || 'Other';
+      document.getElementById('r-notes').textContent = parsed.notes || '—';
+      setTimeout(() => { document.getElementById('scanning').style.display = 'none'; document.getElementById('scan-result').style.display = 'block'; }, 300);
+    } catch(err) {
+      clearInterval(iv);
+      document.getElementById('scanning').style.display = 'none';
+      alert('Could not read receipt. Try a clearer photo, or check your API key.');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function addFromScan() {
+  if (!scanData.amount || !scanData.venue) { alert('Not enough data extracted. Please enter manually.'); return; }
+  addExpense({ date: scanData.date || today(), amount: parseFloat(scanData.amount), venue: scanData.venue, category: scanData.category || 'Other', notes: scanData.notes || 'Receipt scan' });
+  document.getElementById('scan-result').style.display = 'none';
+  document.getElementById('imgPreview').style.display = 'none';
+  showTab('add');
+}
+
+function editScan() {
+  document.getElementById('exp-date').value = scanData.date || today();
+  document.getElementById('exp-amount').value = scanData.amount || '';
+  document.getElementById('exp-venue').value = scanData.venue || '';
+  document.getElementById('exp-notes').value = scanData.notes || 'Receipt scan';
+  const s = document.getElementById('exp-cat');
+  if (scanData.category) { for (let o of s.options) if (o.value === scanData.category) { s.value = scanData.category; break; } }
+  showTab('add');
+}
+
+renderExpenses();
+renderMileage();
+</script>
+</body>
+</html>
