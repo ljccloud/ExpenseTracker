@@ -154,8 +154,7 @@
         <div class="form-group"><label>Venue / merchant</label><input type="text" id="exp-venue" placeholder="e.g. Costa Coffee" autocomplete="off" autocorrect="off"></div>
         <div class="form-group"><label>Category</label>
           <select id="exp-cat">
-            <option>Food &amp; drink</option><option>Travel</option><option>Accommodation</option>
-            <option>Office &amp; supplies</option><option>Client entertainment</option><option>Other</option>
+            <option>Food and drink</option><option>Tickets</option><option>Groceries</option><option>Other</option>
           </select>
         </div>
         <div class="form-group"><label>Notes (optional)</label><input type="text" id="exp-notes" placeholder="e.g. team lunch"></div>
@@ -298,8 +297,8 @@
 <script>
 const HMRC = 0.45;
 const CATS = {
-  'Food & drink':'#1D9E75','Travel':'#378ADD','Accommodation':'#7F77DD',
-  'Office & supplies':'#BA7517','Client entertainment':'#D4537E','Other':'#888780','Mileage':'#3B6D11'
+  'Food and drink':'#1D9E75','Tickets':'#378ADD','Groceries':'#7F77DD',
+  'Other':'#888780','Mileage':'#3B6D11'
 };
 let expenses = [], mileage = [], scanData = {}, period = 'week';
 
@@ -317,6 +316,14 @@ function saveKey() {
   if (k) { localStorage.setItem('et_apikey', k); document.getElementById('api-notice').style.display = 'none'; alert('API key saved!'); }
 }
 function fmt(n) { return '£' + parseFloat(n || 0).toFixed(2); }
+function fmtDate(d) {
+  if (!d) return '';
+  const dt = new Date(d + 'T00:00:00');
+  const day = String(dt.getDate()).padStart(2, '0');
+  const mon = dt.toLocaleDateString('en-GB', { month: 'short' });
+  const yr = String(dt.getFullYear()).slice(2);
+  return `${day}-${mon}-${yr}`;
+}
 function today() { return new Date().toISOString().split('T')[0]; }
 
 load();
@@ -362,7 +369,7 @@ function renderExpenses() {
       <span class="exp-dot" style="background:${CATS[e.category]||'#888'}"></span>
       <div class="exp-info">
         <div class="exp-venue">${e.venue}</div>
-        <div class="exp-meta">${e.date}${e.notes ? ' · ' + e.notes : ''} · ${e.category}</div>
+        <div class="exp-meta">${fmtDate(e.date)}${e.notes ? ' · ' + e.notes : ''} · ${e.category}</div>
       </div>
       <span class="exp-amount">${fmt(e.amount)}</span>
       <button class="del-btn" onclick="delExp(${e.id})">✕</button>
@@ -403,7 +410,7 @@ function renderMileage() {
       <span class="exp-dot" style="background:#3B6D11"></span>
       <div class="exp-info">
         <div class="exp-venue">${m.desc}</div>
-        <div class="exp-meta">${m.date} · ${m.miles.toFixed(1)} miles${m.from && m.to ? ' · ' + m.from + ' → ' + m.to : ''}</div>
+        <div class="exp-meta">${fmtDate(m.date)} · ${m.miles.toFixed(1)} miles${m.from && m.to ? ' · ' + m.from + ' → ' + m.to : ''}</div>
       </div>
       <span class="exp-amount">${fmt(m.value)}</span>
       <button class="del-btn" onclick="delMil(${m.id})">✕</button>
@@ -467,14 +474,14 @@ function renderSummary() {
       const yesterday = new Date(today); yesterday.setDate(today.getDate()-1);
       if (dt.getTime() === today.getTime()) return 'Today';
       if (dt.getTime() === yesterday.getTime()) return 'Yesterday';
-      return dt.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
+      return fmtDate(d);
     };
     sl.innerHTML = Object.entries(grouped).map(([date, items]) => {
       const dayTotal = items.reduce((s, i) => s + parseFloat(i.val || 0), 0);
       return `
-        <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0 5px;border-bottom:0.5px solid var(--border2)">
-          <span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em">${formatDate(date)}</span>
-          <span style="font-size:12px;font-weight:600;color:var(--text2)">${fmt(dayTotal)}</span>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0 6px;border-bottom:1.5px solid var(--border2);margin-top:4px">
+          <span style="font-size:14px;font-weight:800;color:var(--text);letter-spacing:-0.2px">${formatDate(date)}</span>
+          <span style="font-size:13px;font-weight:700;color:var(--text)">${fmt(dayTotal)}</span>
         </div>
         ${items.map(i => `
         <div class="exp-row">
@@ -496,12 +503,12 @@ function doExport() {
   let t = `EXPENSE SUMMARY — ${label.toUpperCase()}\nDate: ${new Date().toLocaleDateString('en-GB')}\n\n`;
   if (fe.length) {
     t += `EXPENSES\n`;
-    fe.sort((a,b) => a.date.localeCompare(b.date)).forEach(e => { t += `${e.date}  ${e.venue}  ${e.category}  ${fmt(e.amount)}\n`; });
+    fe.sort((a,b) => a.date.localeCompare(b.date)).forEach(e => { t += `${fmtDate(e.date)}  ${e.venue}  ${e.category}  ${fmt(e.amount)}\n`; });
     t += `Subtotal: ${fmt(te)}\n\n`;
   }
   if (fm.length) {
     t += `MILEAGE\n`;
-    fm.sort((a,b) => a.date.localeCompare(b.date)).forEach(m => { t += `${m.date}  ${m.desc}  ${m.miles.toFixed(1)} mi  ${fmt(m.value)}\n`; });
+    fm.sort((a,b) => a.date.localeCompare(b.date)).forEach(m => { t += `${fmtDate(m.date)}  ${m.desc}  ${m.miles.toFixed(1)} mi  ${fmt(m.value)}\n`; });
     t += `Subtotal: ${fmt(tm)}\n\n`;
   }
   t += `GRAND TOTAL: ${fmt(te + tm)}`;
@@ -559,7 +566,7 @@ async function handleReceipt(ev) {
       const mt = file.type || 'image/jpeg';
       const data = await apiCall([{ role: 'user', content: [
         { type: 'image', source: { type: 'base64', media_type: mt, data: b64 } },
-        { type: 'text', text: `Extract expense info from this receipt. Return ONLY valid JSON: { "date": "YYYY-MM-DD (today=${today()})", "amount": number, "venue": string, "category": "Food & drink|Travel|Accommodation|Office & supplies|Client entertainment|Other", "notes": string|null }. No markdown, no extra text.` }
+        { type: 'text', text: `Extract expense info from this receipt. Return ONLY valid JSON: { "date": "YYYY-MM-DD (today=${today()})", "amount": number, "venue": string, "category": "Food and drink|Tickets|Groceries|Other", "notes": string|null }. No markdown, no extra text.` }
       ]}]);
       clearInterval(iv); bar.style.width = '100%';
       const raw = data.content?.[0]?.text || '{}';
